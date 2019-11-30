@@ -1,0 +1,12 @@
+[Unit]
+Description=ICanHasButtons "use input device as buttons" daemon
+
+[Service]
+ExecStart=/usr/local/ichb
+Restart=always
+Type=forking
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+Alias=icanhasbuttons.service
