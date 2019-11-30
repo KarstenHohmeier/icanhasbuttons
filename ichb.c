@@ -135,7 +135,7 @@ enum {
 
 static void ICHB_ExecOrphaned(ICHB_CommandId cmdId)
 {
-	// span a grandchild
+	// Spawn a grandchild.
 	switch (fork())
 	{
 		case forkError:
@@ -146,14 +146,16 @@ static void ICHB_ExecOrphaned(ICHB_CommandId cmdId)
 			char * const cmdPath = ICHB_CmdTable[cmdId][0];
 			char * const *cmdArgv = &(ICHB_CmdTable[cmdId][1]);
 			execv(cmdPath, cmdArgv);
-			// We only return here if the system call fails;
-			// print the error and kill the child then
+			// We only return here if the system call fails,
+			// print the error and kill ourselves (the grandchild).
 			ENOPRINT(cmdPath);
 			exit(-1);
 			break;
 		default:;
-			// child terminates immediatly;
-			// grandchild is inherited by init process
+			// The child (parent of the grandchild) terminates immediately.
+			// We do not want to track and collect the exit status of the
+			// grandchild. The grandchild will be orphaned and inherited by
+			// the init process.
 			_exit(0);
 			break;
 	}
@@ -161,19 +163,20 @@ static void ICHB_ExecOrphaned(ICHB_CommandId cmdId)
 
 static void ICHB_Exec(ICHB_CommandId cmdId)
 {
-	// span a child
+	// Spawn a child.
 	switch (fork())
 	{
 		case forkError:
 			ENOPRINT("Forking failed");
 			break;
 		case forkChild:
-			// directly span a child, that creates and
-			// orphanes a grandchild to avoid zombie processes
+			// The child process creates a grandchild for the sole purpose
+			// of orphaning it and handing it off to the init process.
 			ICHB_ExecOrphaned(cmdId);
 			break;
 		default:;
-			// parent waits for direct child to terminate
+			// The parent waits for the child to terminate after spawning the
+			// grandchild.
 			int childExitstatus;
 			wait(&childExitstatus);
 			break;
@@ -282,7 +285,7 @@ static int ICHB_FilterScanCode(__u16 code)
 {
 	switch (code)
 	{
-		// Use a limited subset of simple keys on my numeric keypad
+		// Use a limited subset of simple keys on a numeric keypad
 		case KEY_BACKSPACE:
 		case KEY_KPENTER:
 		case KEY_KP0:
@@ -369,21 +372,21 @@ static void ICHB_MatchCollect(void)
 		ICHB_Match *match = ICHB_MatchTable + i;
 		if (!match->matchPointer)
 		{
-			// Skip matches that already failed;
-			// they are marked by a NULL pointer
+			// Skip matches that already failed.
+			// They are marked by a NULL pointer.
 			continue;
 		}
 		__u16 const expectedScanCode = *(match->matchPointer);
 		if (expectedScanCode == ichb.lastScanCode)
 		{
-			// Sequence matched all scan codes including the
-			// last one; advance the pointer!
+			// The sequence matched all scan codes including the
+			// last one. Advance the pointer!
 			match->matchPointer++;
 		}
 		else
 		{
-			// Sequence did not match entered scan codes;
-			// set the pointer to NULL to remember
+			// The sequence did not match the last scan code.
+			// Set the pointer to NULL to remember.
 			match->matchPointer = NULL;
 		}
 	}
@@ -528,9 +531,8 @@ int ICHB_Main(void)
 
 int main(int argc, char **argv)
 {
-	// This forking is done to 'daemonize' the program
-	// to signal systemd that we are done starting (i.e.
-	// the unit is of type 'forking')
+	// Fork to daemonize the program and signal to systemd that we are done
+	// starting (i.e. the systemd unit is of type 'forking')
 	switch (fork())
 	{
 		case forkError:

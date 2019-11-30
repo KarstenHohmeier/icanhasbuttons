@@ -51,6 +51,7 @@ fclose(fp);
 - Only static memory is used
 - The program takes no arguments; I was too lazy for argument parsing  *yay!*
 - No thoughts were wasted on security concerns; if you get close enough to the machine to press buttons you are root
+- Uses fancy finite state machine (FSM) for key matching
 
 ## Compiling
 
